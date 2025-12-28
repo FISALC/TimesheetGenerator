@@ -1,0 +1,127 @@
+﻿@page "/"
+@using Microsoft.JSInterop
+@using TimesheetGenerator.Web
+@using System.Globalization
+@inject TimesheetService TimesheetService
+@inject IJSRuntime JS
+
+<PageTitle>Timesheet Generator</PageTitle>
+
+<div class="container mt-5">
+    <div class="card shadow" style="max-width: 800px; margin: 0 auto;">
+        <div class="card-header bg-maroon text-white">
+            <h3 class="mb-0">Timesheet Generator</h3>
+        </div>
+        <div class="card-body">
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <div class="alert alert-danger">@ErrorMessage</div>
+            }
+            @if (!string.IsNullOrEmpty(SuccessMessage))
+            {
+                <div class="alert alert-success">@SuccessMessage</div>
+            }
+
+            <div class="mb-3">
+                <label class="form-label">Year:</label>
+                <input type="number" class="form-control" @bind="Year" min="2000" max="2100" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Month:</label>
+                <select class="form-select" @bind="Month">
+                    @for (int i = 1; i <= 12; i++)
+                    {
+                        <option value="@i">@CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i)</option>
+                    }
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Select Approver:</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="approver" id="app1" 
+                           checked="@(SelectedApproverIndex == 1)" 
+                           @onchange="@(() => SelectedApproverIndex = 1)" />
+                    <label class="form-check-label" for="app1">
+                        Salem Jaber Al-Marri (Head of E-Portal Development)
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="approver" id="app2" 
+                           checked="@(SelectedApproverIndex == 2)" 
+                           @onchange="@(() => SelectedApproverIndex = 2)" />
+                    <label class="form-check-label" for="app2">
+                        Shaikha Abdulrahman AlKhulaifi (Digital Government Systems Expert)
+                    </label>
+                </div>
+            </div>
+
+            <button class="btn btn-primary w-100" @onclick="GenerateTimesheet" disabled="@IsProcessing">
+                @if (IsProcessing)
+                {
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <span> Generating...</span>
+                }
+                else
+                {
+                    <span>Generate & Download</span>
+                }
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int Year { get; set; } = DateTime.Now.Year;
+    private int Month { get; set; } = DateTime.Now.Month;
+    private int SelectedApproverIndex { get; set; } = 1;
+
+    private bool IsProcessing { get; set; }
+    private string ErrorMessage { get; set; } = "";
+    private string SuccessMessage { get; set; } = "";
+
+    private async Task GenerateTimesheet()
+    {
+        IsProcessing = true;
+        ErrorMessage = "";
+        SuccessMessage = "";
+
+        try
+        {
+            string approverName = "";
+            string approverRole = "";
+
+            if (SelectedApproverIndex == 1)
+            {
+                approverName = "Salem Jaber Al-Marri";
+                approverRole = "Head of E-Portal Development";
+            }
+            else
+            {
+                approverName = "Shaikha Abdulrahman AlKhulaifi";
+                approverRole = "Digital Government Systems Expert";
+            }
+
+            var bytes = await TimesheetService.GenerateTimesheetBytesAsync(Year, Month, approverName, approverRole);
+
+            var fileName = $"Timesheet_{Year:0000}_{Month:00}_{DateTime.Now:yyyyMMddHHmmss}.xlsx";
+
+            // Download via JS
+            using var stream = new MemoryStream(bytes);
+            using var streamRef = new DotNetStreamReference(stream);
+            await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+
+            SuccessMessage = "File downloaded successfully!";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error: {ex.Message}";
+            Console.WriteLine(ex);
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
+    }
+}

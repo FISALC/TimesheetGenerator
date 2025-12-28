@@ -1,0 +1,79 @@
+<Window x:Class="TimesheetGenerator.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Timesheet Generator" Height="Auto" Width="500"
+        WindowStartupLocation="CenterScreen"
+        SizeToContent="Height"
+        ResizeMode="CanResize">
+    <Window.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#F0F0F0" Offset="0.0"/>
+            <GradientStop Color="#E0E0E0" Offset="1.0"/>
+        </LinearGradientBrush>
+    </Window.Background>
+    
+    <StackPanel Margin="20">
+        <!-- Header -->
+        <TextBlock Text="Timesheet Generator" 
+                   FontSize="24" FontWeight="Bold" Foreground="#963634" 
+                   HorizontalAlignment="Center" Margin="0,0,0,20"/>
+
+        <!-- Date Selection -->
+        <GroupBox Header="Period" Margin="0,0,0,10" Padding="10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                
+                <TextBlock Grid.Column="0" Text="Year:" />
+                <TextBox x:Name="txtYear" Grid.Column="1" Text="2025" />
+                
+                <TextBlock Grid.Column="3" Text="Month:" />
+                <ComboBox x:Name="cmbMonth" Grid.Column="4" SelectedIndex="0">
+                     <ComboBoxItem Content="1 - January"/>
+                     <ComboBoxItem Content="2 - February"/>
+                     <ComboBoxItem Content="3 - March"/>
+                     <ComboBoxItem Content="4 - April"/>
+                     <ComboBoxItem Content="5 - May"/>
+                     <ComboBoxItem Content="6 - June"/>
+                     <ComboBoxItem Content="7 - July"/>
+                     <ComboBoxItem Content="8 - August"/>
+                     <ComboBoxItem Content="9 - September"/>
+                     <ComboBoxItem Content="10 - October"/>
+                     <ComboBoxItem Content="11 - November"/>
+                     <ComboBoxItem Content="12 - December"/>
+                </ComboBox>
+            </Grid>
+        </GroupBox>
+
+        <!-- Approver Selection -->
+        <GroupBox Header="Approver" Margin="0,0,0,20" Padding="10">
+            <StackPanel>
+                <RadioButton x:Name="rbApprover1" Content="Salem Jaber Al-Marri (Head of E-Portal Development)" IsChecked="True" Margin="0,5"/>
+                <RadioButton x:Name="rbApprover2" Content="Shaikha Abdulrahman AlKhulaifi (Digital Government Systems Expert)" Margin="0,5"/>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Generate Button -->
+        <Button Content="Download Timesheet" Height="45" FontSize="16" FontWeight="Bold"
+                Background="#963634" Foreground="White" Click="Button_Click" Cursor="Hand"
+                Margin="0,0,0,10">
+            <Button.Resources>
+                <Style TargetType="Border">
+                     <Setter Property="CornerRadius" Value="5"/>
+                </Style>
+            </Button.Resources>
+        </Button>
+
+        <!-- Status -->
+        <TextBlock x:Name="txtStatus" Text="Ready" Foreground="Gray" FontStyle="Italic" HorizontalAlignment="Center"/>
+
+        <!-- Copyright -->
+        <TextBlock Text="© 2025 Moahmmed Fisal" FontSize="10" Foreground="Gray" HorizontalAlignment="Center" Margin="0,10,0,0"/>
+
+    </StackPanel>
+</Window>

@@ -33,11 +33,18 @@ app.MapControllers();
 app.MapFallbackToFile("index.html");
 
 // Auto-launch browser
-var url = "http://localhost:5000";
-app.Urls.Add(url);
+// Configure for dynamic port
+app.Urls.Add("http://127.0.0.1:0");
 
-app.Lifetime.ApplicationStarted.Register(() =>
+app.Start();
+
+var server = app.Services.GetRequiredService<Microsoft.AspNetCore.Hosting.Server.IServer>();
+var addressFeature = server.Features.Get<Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature>();
+var url = addressFeature?.Addresses.FirstOrDefault();
+
+if (!string.IsNullOrEmpty(url))
 {
+    Console.WriteLine($"Listening on: {url}");
     try
     {
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
@@ -46,6 +53,6 @@ app.Lifetime.ApplicationStarted.Register(() =>
     {
         Console.WriteLine($"Failed to launch browser: {ex.Message}");
     }
-});
+}
 
-app.Run();
+app.WaitForShutdown();

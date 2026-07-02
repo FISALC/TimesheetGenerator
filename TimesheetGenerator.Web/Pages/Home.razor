@@ -75,7 +75,7 @@
             <summary class="ts-section-title">Advanced: Custom Day Types</summary>
             <p class="ts-hint">Override individual days below (weekend / holiday / leave / mission).</p>
 
-            <div class="d-flex flex-wrap gap-3 mb-2 small">
+            <div class="legend-row d-flex flex-wrap gap-3 mb-2 small">
                 <span><span class="legend-dot" style="background:#FCE4D6;"></span> Weekend</span>
                 <span><span class="legend-dot" style="background:#FFF2CC;"></span> Public Holiday</span>
                 <span><span class="legend-dot" style="background:#DDEBF7;"></span> Leave (Annual / Casual)</span>
@@ -291,28 +291,67 @@
         cursor: default;
     }
 
+    details.ts-advanced {
+        border: 1px solid #ece7f7;
+        border-radius: 12px;
+        background: #fbfaff;
+        overflow: hidden;
+    }
+
     details.ts-advanced summary.ts-section-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 14px 16px;
+        margin-bottom: 0;
         cursor: pointer;
+        user-select: none;
         list-style: none;
+        transition: background 0.15s ease;
+    }
+
+    details.ts-advanced summary.ts-section-title:hover {
+        background: #f0eafb;
     }
 
     details.ts-advanced summary.ts-section-title::-webkit-details-marker {
         display: none;
     }
 
-    details.ts-advanced summary.ts-section-title::before {
-        content: '▸ ';
-        color: #ec4899;
+    details.ts-advanced summary.ts-section-title::after {
+        content: '';
+        flex: 0 0 auto;
+        width: 8px;
+        height: 8px;
+        margin-top: -2px;
+        border-right: 2px solid #ec4899;
+        border-bottom: 2px solid #ec4899;
+        transform: rotate(45deg);
+        transition: transform 0.2s ease;
     }
 
-    details.ts-advanced[open] summary.ts-section-title::before {
-        content: '▾ ';
+    details.ts-advanced[open] summary.ts-section-title::after {
+        transform: rotate(-135deg);
+        margin-top: 2px;
+    }
+
+    details.ts-advanced .ts-hint,
+    details.ts-advanced .legend-row,
+    details.ts-advanced .table-responsive {
+        margin-left: 16px;
+        margin-right: 16px;
+    }
+
+    details.ts-advanced[open] {
+        padding-bottom: 16px;
     }
 
     .ts-hint {
         font-size: 0.78rem;
         color: #888;
-        margin: -4px 0 10px;
+        margin-top: -4px;
+        margin-bottom: 10px;
     }
 
     .ts-grid-2 {

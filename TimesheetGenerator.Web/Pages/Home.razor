@@ -466,6 +466,13 @@
     private static bool IsWeekend(DateOnly d) =>
         d.DayOfWeek == DayOfWeek.Friday || d.DayOfWeek == DayOfWeek.Saturday;
 
+    private static string SanitizeFileNamePart(string value)
+    {
+        var trimmed = value.Trim();
+        var invalid = Path.GetInvalidFileNameChars();
+        return string.Concat(trimmed.Select(c => invalid.Contains(c) ? '_' : c));
+    }
+
     private static string GetKindValue(DayEntry entry) => entry.Kind switch
     {
         DateKind.Weekend => "weekend",
@@ -528,7 +535,9 @@
             var bytes = await TimesheetService.GenerateTimesheetBytesAsync(
                 Year, Month, EmployeeName, EmployeeRole, approverName, approverRole, customDates);
 
-            var fileName = $"Timesheet_{Year:0000}_{Month:00}_{DateTime.Now:yyyyMMddHHmmss}.xlsx";
+            var namePart = string.IsNullOrWhiteSpace(EmployeeName) ? "Timesheet" : SanitizeFileNamePart(EmployeeName);
+            var monthName = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(Month);
+            var fileName = $"{namePart}-{monthName}-{Year:0000}.xlsx";
 
             using var stream = new MemoryStream(bytes);
             using var streamRef = new DotNetStreamReference(stream);

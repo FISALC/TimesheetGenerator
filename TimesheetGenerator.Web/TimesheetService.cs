@@ -18,24 +18,25 @@ namespace TimesheetGenerator.Web
 
         // ====== DATA CONSTANTS ======
         private const string ProjectName = "Staff Augmentation";
-        private const string EmployeeName = "Mohammed Fisal"; 
-        private const string EmployeeRole = ".NET Developer";
 
         // ====== COLORS ======
         private static readonly XLColor HeaderBg = XLColor.FromHtml("#963634"); // Dark Red/Brown
         private static readonly XLColor TableHeaderBgFix = XLColor.FromHtml("#404040"); // Dark Grey
-        private static readonly XLColor WeekendFill = XLColor.FromHtml("#FCE4D6"); // Peach color
+        private static readonly XLColor WeekendFill = XLColor.FromHtml("#FCE4D6"); // Peach - weekend
+        private static readonly XLColor HolidayFill = XLColor.FromHtml("#FFF2CC"); // Light Yellow - public holiday
+        private static readonly XLColor LeaveFill = XLColor.FromHtml("#DDEBF7");   // Light Blue - leave day
+        private static readonly XLColor MissionFill = XLColor.FromHtml("#E2EFDA"); // Light Green - mission/business trip
 
-        public async Task<byte[]> GenerateTimesheetBytesAsync(int year, int month, string approverName, string approverRole)
+        public async Task<byte[]> GenerateTimesheetBytesAsync(int year, int month, string employeeName, string employeeRole, string approverName, string approverRole, Dictionary<DateOnly, (DateKind Kind, LeaveType? LeaveKind)>? customDates = null)
         {
             using var wb = new XLWorkbook();
             var ws = wb.Worksheets.Add("Timesheet");
 
             // 1. Build the Layout (Headers, Logos, Static info)
-            await BuildLayoutAsync(ws, year, month);
+            await BuildLayoutAsync(ws, year, month, employeeName, employeeRole);
 
             // 2. Fill Data (Days, Weekends, Hours)
-            FillTimesheetData(ws, year, month, approverName, approverRole);
+            FillTimesheetData(ws, year, month, approverName, approverRole, customDates ?? new());
 
             // 3. Print Settings
             ws.PageSetup.PageOrientation = XLPageOrientation.Portrait;
@@ -52,7 +53,7 @@ namespace TimesheetGenerator.Web
             return ms.ToArray();
         }
 
-        private async Task BuildLayoutAsync(IXLWorksheet ws, int year, int month)
+        private async Task BuildLayoutAsync(IXLWorksheet ws, int year, int month, string employeeName, string employeeRole)
         {
             // Global font settings
             ws.Style.Font.FontName = "Calibri";
@@ -87,15 +88,16 @@ namespace TimesheetGenerator.Web
             SetupTopInfoRow(ws, r++, "Project Name:", ProjectName);
             SetupTopInfoRow(ws, r++, "Start Date:", startDate.ToString(dateFmt));
             SetupTopInfoRow(ws, r++, "End Date:", endDate.ToString(dateFmt));
-            SetupTopInfoRow(ws, r++, "Employee Name", ""); // Blank as per user request 
+            SetupTopInfoRow(ws, r++, "Employee Name:", employeeName);
+            SetupTopInfoRow(ws, r++, "Employee Role:", employeeRole);
 
-            // Borders for top block (Rows 8-11, Cols B-H)
-            var topBlock = ws.Range(8, 2, 11, 8);
+            // Borders for top block (Rows 8-12, Cols B-H)
+            var topBlock = ws.Range(8, 2, 12, 8);
             topBlock.Style.Border.OutsideBorder = XLBorderStyleValues.Thick;
             topBlock.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-            
+
             // Fix specific bolding for labels
-            ws.Range(8, 2, 11, 2).Style.Font.Bold = true;
+            ws.Range(8, 2, 12, 2).Style.Font.Bold = true;
         }
 
         private void SetupTopInfoRow(IXLWorksheet ws, int row, string label, string value)
@@ -107,16 +109,16 @@ namespace TimesheetGenerator.Web
             ws.Range(row, 3, row, 8).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
         }
 
-        private void FillTimesheetData(IXLWorksheet ws, int year, int month, string approverName, string approverRole)
+        private void FillTimesheetData(IXLWorksheet ws, int year, int month, string approverName, string approverRole, Dictionary<DateOnly, (DateKind Kind, LeaveType? LeaveKind)> customDates)
         {
             // Stylistic Red Bar
-            int redBarRow = 13; // shifted down due to top block moving
+            int redBarRow = 14; // shifted down due to the added Employee Role row
             var redBarRange = ws.Range(redBarRow, 2, redBarRow, 8);
             redBarRange.Merge();
             redBarRange.Style.Fill.BackgroundColor = HeaderBg; // #963634
             redBarRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-            
-            int headerRow = 14; 
+
+            int headerRow = 15;
             
             // == HEADERS ==
             string[] headers = { "Day", "Date", "Days\nPresent/Off", "Time-In", "Time-Out", "OverTime\n(Hours)", "Note" };
@@ -147,29 +149,54 @@ namespace TimesheetGenerator.Web
             int startRow = headerRow + 1;
             int daysInMonth = DateTime.DaysInMonth(year, month);
             int currentRow = startRow;
+            int daysOffCount = 0; // Weekend + Leave + Mission (Public Holiday excluded)
 
             for (int day = 1; day <= daysInMonth; day++)
             {
                 var date = new DateTime(year, month, day);
-                bool isWeekend = (date.DayOfWeek == DayOfWeek.Friday || date.DayOfWeek == DayOfWeek.Saturday);
+                var dateOnly = DateOnly.FromDateTime(date);
+                bool isWeekend = date.DayOfWeek == DayOfWeek.Friday || date.DayOfWeek == DayOfWeek.Saturday;
+
+                customDates.TryGetValue(dateOnly, out var over);
+                var kind = over.Kind;
+                if (isWeekend && kind == DateKind.None) kind = DateKind.Weekend;
 
                 ws.Cell(currentRow, 2).Value = date.ToString("dddd");
                 ws.Cell(currentRow, 3).Value = date.ToString("d-MMM-yyyy");
-                
-                // Center align everything
-                ws.Range(currentRow, 2, currentRow, 8).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
-                if (isWeekend)
+                var row = ws.Range(currentRow, 2, currentRow, 8);
+                row.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                // Apply row color based on date kind
+                var fillColor = kind switch
                 {
-                    ws.Range(currentRow, 2, currentRow, 8).Style.Fill.BackgroundColor = WeekendFill;
-                    ws.Cell(currentRow, 4).Value = "0"; // Days Present
+                    DateKind.Weekend  => WeekendFill,
+                    DateKind.Holiday  => HolidayFill,
+                    DateKind.Leave    => LeaveFill,
+                    DateKind.Mission  => MissionFill,
+                    _                 => XLColor.NoColor
+                };
+                if (fillColor != XLColor.NoColor)
+                    row.Style.Fill.BackgroundColor = fillColor;
+
+                // Write note into the Note column (H)
+                if (kind == DateKind.Holiday) ws.Cell(currentRow, 8).Value = "Public Holiday";
+                else if (kind == DateKind.Leave)   ws.Cell(currentRow, 8).Value = over.LeaveKind == LeaveType.Casual ? "Casual Leave" : "Annual Leave";
+                else if (kind == DateKind.Mission) ws.Cell(currentRow, 8).Value = "Mission";
+
+                if (kind == DateKind.Weekend || kind == DateKind.Holiday || kind == DateKind.Leave)
+                {
+                    ws.Cell(currentRow, 4).Value = "0";
                 }
                 else
                 {
-                    ws.Cell(currentRow, 4).Value = "1"; // Days Present
+                    ws.Cell(currentRow, 4).Value = "1";
                     ws.Cell(currentRow, 5).Value = "7:00";
                     ws.Cell(currentRow, 6).Value = "15:00";
                 }
+
+                if (kind == DateKind.Weekend || kind == DateKind.Leave || kind == DateKind.Mission)
+                    daysOffCount++;
 
                 currentRow++;
             }
@@ -190,7 +217,7 @@ namespace TimesheetGenerator.Web
             
             // Value (E)
             var valueCell1 = ws.Cell(currentRow, 5);
-            valueCell1.Value = 0; 
+            valueCell1.Value = daysOffCount;
             valueCell1.Style.Font.Bold = true;
             valueCell1.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
 
@@ -296,5 +323,20 @@ namespace TimesheetGenerator.Web
                 ws.Cell(r, 2).Style.Font.FontColor = XLColor.Blue;
             }
         }
+    }
+
+    public enum DateKind
+    {
+        None,
+        Weekend,
+        Holiday,  // Public holiday
+        Leave,    // Annual or casual leave (see LeaveType)
+        Mission   // Business trip / external mission
+    }
+
+    public enum LeaveType
+    {
+        Annual,
+        Casual
     }
 }

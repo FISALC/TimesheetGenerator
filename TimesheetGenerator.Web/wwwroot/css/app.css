@@ -99,7 +99,7 @@ a,
 }
 
 .loading-progress circle:last-child {
-    stroke: #8A1538;
+    stroke: #6d28d9;
     stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
     transition: stroke-dasharray 0.05s ease-in-out;
 }

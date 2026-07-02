@@ -149,7 +149,7 @@ namespace TimesheetGenerator.Web
             int startRow = headerRow + 1;
             int daysInMonth = DateTime.DaysInMonth(year, month);
             int currentRow = startRow;
-            int daysOffCount = 0; // Weekend + Leave + Mission (Public Holiday excluded)
+            int daysOffCount = 0; // Leave + Mission only (Weekend and Public Holiday excluded)
 
             for (int day = 1; day <= daysInMonth; day++)
             {
@@ -195,7 +195,7 @@ namespace TimesheetGenerator.Web
                     ws.Cell(currentRow, 6).Value = "15:00";
                 }
 
-                if (kind == DateKind.Weekend || kind == DateKind.Leave || kind == DateKind.Mission)
+                if (kind == DateKind.Leave || kind == DateKind.Mission)
                     daysOffCount++;
 
                 currentRow++;

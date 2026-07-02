@@ -36,7 +36,7 @@ namespace TimesheetGenerator.Web
             await BuildLayoutAsync(ws, year, month, employeeName, employeeRole);
 
             // 2. Fill Data (Days, Weekends, Hours)
-            FillTimesheetData(ws, year, month, approverName, approverRole, customDates ?? new());
+            FillTimesheetData(ws, year, month, employeeName, employeeRole, approverName, approverRole, customDates ?? new());
 
             // 3. Print Settings
             ws.PageSetup.PageOrientation = XLPageOrientation.Portrait;
@@ -109,7 +109,7 @@ namespace TimesheetGenerator.Web
             ws.Range(row, 3, row, 8).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
         }
 
-        private void FillTimesheetData(IXLWorksheet ws, int year, int month, string approverName, string approverRole, Dictionary<DateOnly, (DateKind Kind, LeaveType? LeaveKind)> customDates)
+        private void FillTimesheetData(IXLWorksheet ws, int year, int month, string employeeName, string employeeRole, string approverName, string approverRole, Dictionary<DateOnly, (DateKind Kind, LeaveType? LeaveKind)> customDates)
         {
             // Stylistic Red Bar
             int redBarRow = 14; // shifted down due to the added Employee Role row
@@ -262,8 +262,8 @@ namespace TimesheetGenerator.Web
             currentRow += 3; // Gap
             var endMonthDate = new DateTime(year, month, daysInMonth);
             
-            // Employee: Blank Name, Blank Role, Prefilled Date
-            CreateSignatureBlock(ws, currentRow, "Employee Signature:", "", "", "Name:", "Role:", "Signature:", endMonthDate, includeClassification: false);
+            // Employee: Selected Name, Selected Role, Prefilled Date
+            CreateSignatureBlock(ws, currentRow, "Employee Signature:", employeeName, employeeRole, "Name:", "Role:", "Signature:", endMonthDate, includeClassification: false);
             
             currentRow += 8; 
             

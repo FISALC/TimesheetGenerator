@@ -1,0 +1,452 @@
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+
+@if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="alert alert-danger">@ErrorMessage</div>
+}
+@if (!string.IsNullOrEmpty(SuccessMessage))
+{
+    <div class="alert alert-success">@SuccessMessage</div>
+}
+
+<div class="ts-form-grid">
+    <section class="ts-section ts-panel">
+        <h2 class="ts-section-title">Employee Details</h2>
+        <div class="ts-grid-2">
+            <input class="form-control ts-input" placeholder="e.g., Mohammed Fisal" @bind="EmployeeName" />
+            <input class="form-control ts-input" placeholder="Position, e.g., Software Developer" @bind="Position" />
+            <input class="form-control ts-input" placeholder="Department" @bind="Department" />
+            <label class="ts-field-label">
+                Date of Joining
+                <input type="date" class="form-control ts-input" @bind="DateOfJoining" />
+            </label>
+        </div>
+    </section>
+
+    <section class="ts-section ts-panel">
+        <h2 class="ts-section-title">Leave Type</h2>
+        <select class="form-select ts-input" @bind="SelectedLeaveType">
+            @foreach (var type in LeaveTypes)
+            {
+                <option value="@type">@type</option>
+            }
+        </select>
+    </section>
+
+    <section class="ts-section ts-panel ts-span-2">
+        <h2 class="ts-section-title">Leave Period</h2>
+        <div class="ts-grid-2">
+            <label class="ts-field-label">
+                Start Date
+                <input type="date" class="form-control ts-input" @bind="FromDate" />
+            </label>
+            <label class="ts-field-label">
+                End Date
+                <input type="date" class="form-control ts-input" @bind="ToDate" />
+            </label>
+        </div>
+        <p class="ts-hint">Total days requested: <strong>@TotalDays</strong></p>
+    </section>
+
+    <section class="ts-section ts-panel ts-span-2">
+        <h2 class="ts-section-title">Reason of Leave</h2>
+        <textarea class="form-control ts-input" rows="2" placeholder="Briefly describe the reason for leave" @bind="Reason"></textarea>
+    </section>
+
+    <section class="ts-section ts-panel ts-span-2">
+        <h2 class="ts-section-title">Address While on Leave</h2>
+        <input class="form-control ts-input" placeholder="Address / contact details while on leave" @bind="AddressWhileOnLeave" />
+    </section>
+</div>
+
+<div class="ts-actions">
+    <button class="ts-generate-btn" @onclick="GenerateLeaveRequestPdf" disabled="@IsProcessing">
+        @if (IsProcessing)
+        {
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            <span> Generating...</span>
+        }
+        else
+        {
+            <svg class="ts-btn-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+                <polyline points="10 9 9 9 8 9" />
+            </svg>
+            <span>Generate Leave Request PDF</span>
+        }
+    </button>
+</div>
+<p class="ts-hint" style="text-align:center;">The PDF matches the official Vistas Leave Request form. Signatures must be added manually after printing/downloading.</p>
+
+<div id="leave-print-template" class="lr-print">
+    <div class="lr-page">
+        <div class="lr-header-row">
+            <img src="report_logo.png" class="lr-logo" alt="Vistas Global" />
+            <div class="lr-contact-info">
+                <div>2nd Floor, United Cars Almana,</div>
+                <div>Old Airport Road,</div>
+                <div>Doha, Qatar - 4413</div>
+                <div>Phone: +974 4444 4421</div>
+                <div>Email: info@vistasglobal.com</div>
+                <div>Website: www.vistasglobal.com</div>
+            </div>
+        </div>
+        <div class="lr-header-rule"></div>
+
+        <h1 class="lr-title">LEAVE REQUEST</h1>
+
+        <div class="lr-watermark-wrap">
+            <div class="lr-watermark">VISTAS GLOBAL&nbsp;&nbsp;&nbsp;&nbsp;VISTAS GLOBAL</div>
+
+            <div class="lr-content-col">
+                <table class="lr-table">
+                    <tbody>
+                        <tr>
+                            <td><strong>Date of Joining:</strong> @DateOfJoining.ToString("dd-MMM-yyyy")</td>
+                            <td><strong>Date:</strong> @DateTime.Now.ToString("dd-MMM-yyyy")</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <table class="lr-table">
+                    <tbody>
+                        <tr>
+                            <td colspan="2"><strong>Employee Name/No:</strong> @EmployeeName</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Position:</strong> @Position</td>
+                            <td><strong>Department:</strong> @Department</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h2 class="lr-subtitle">LEAVE TYPE</h2>
+
+                <table class="lr-table">
+                    <tbody>
+                        <tr>
+                            <td>@CheckboxCell("Annual")</td>
+                            <td>@CheckboxCell("Emergency")</td>
+                            <td colspan="2">@CheckboxCell("Hajj")</td>
+                        </tr>
+                        <tr>
+                            <td>@CheckboxCell("Sick")</td>
+                            <td>@CheckboxCell("W/O Pay")</td>
+                            <td colspan="2">@CheckboxCell("Other")</td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" class="lr-tall-cell">
+                                <strong>Reason of Leave:</strong>
+                                <div class="lr-value-block">@Reason</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Start Date:</strong> @FromDate.ToString("dd-MMM-yyyy")</td>
+                            <td><strong>End Date:</strong> @ToDate.ToString("dd-MMM-yyyy")</td>
+                            <td colspan="2"><strong>No. of Days:</strong> @TotalDays</td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" class="lr-tall-cell">
+                                <strong>Address while on leave:</strong>
+                                <div class="lr-value-block">@AddressWhileOnLeave</div>
+                            </td>
+                        </tr>
+                        <tr class="lr-sig-row">
+                            <td>
+                                <div class="lr-sig-line">&nbsp;</div>
+                                <strong>Signature of Employee</strong>
+                            </td>
+                            <td>
+                                <div class="lr-sig-line">&nbsp;</div>
+                                <strong>Department Head</strong>
+                            </td>
+                            <td colspan="2">
+                                <div class="lr-sig-line">&nbsp;</div>
+                                <strong>HR Department</strong>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="lr-approved-box">
+                    <strong>Approved by CEO / Managing Director</strong>
+                </div>
+
+                <h3 class="lr-section-title">For the use of Personnel Section</h3>
+
+                <div class="lr-box">
+                    <strong>To: Purchase Department kindly arrange the following</strong>
+                </div>
+
+                <p class="lr-plain-line"><span class="lr-checkbox-box"></span> <strong>Ticket:</strong> &nbsp;&nbsp;<span class="lr-checkbox-box"></span> Yes &nbsp;&nbsp;&nbsp; <span class="lr-checkbox-box"></span> No</p>
+                <p class="lr-plain-line"><strong>Ticket:</strong> &nbsp;&nbsp;<span class="lr-checkbox-box"></span> Provided by the company but will deduct from the salary</p>
+
+                <div class="lr-box">
+                    <strong>To: HR Department kindly arrange the following:</strong>
+                    <div><strong>Departure Request &amp; Exit Permit</strong></div>
+                </div>
+            </div>
+        </div>
+
+        <p class="lr-classification">Classification: Internal - داخلي</p>
+        <div class="lr-page-divider"></div>
+
+        <div class="lr-box lr-accountant-box">
+            <strong>To Accountant:</strong>
+            <p>
+                It has been approved to grant the above-named employee leave period of
+                <strong>@TotalDays</strong> days with effect from <strong>@FromDate.ToString("dd/MM/yyyy")</strong>
+                to <strong>@ToDate.ToString("dd/MM/yyyy")</strong>.
+            </p>
+            <p><span class="lr-checkbox-box"></span> <strong>Please arrange for his leave settlement till the end of his leave</strong></p>
+            <p><span class="lr-checkbox-box"></span> <strong>Please recomputed his salary for the said period as a half-paid leave / unpaid leave</strong></p>
+        </div>
+    </div>
+</div>
+
+<style>
+    .lr-print {
+        position: fixed;
+        top: 0;
+        left: -10000px;
+        width: 794px;
+        background: #ffffff;
+    }
+
+    .lr-page {
+        width: 794px;
+        padding: 30px 40px 40px;
+        box-sizing: border-box;
+        font-family: "Times New Roman", Times, serif;
+        font-weight: 700;
+        color: #000;
+        font-size: 12px;
+    }
+
+    .lr-header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+
+    .lr-logo {
+        height: 46px;
+    }
+
+    .lr-contact-info {
+        text-align: right;
+        font-size: 10px;
+        font-weight: 400;
+        line-height: 1.35;
+        color: #333;
+    }
+
+    .lr-header-rule {
+        border-top: 2px solid #d9d9d9;
+        margin: 8px 0 10px;
+    }
+
+    .lr-title {
+        text-align: center;
+        font-size: 17px;
+        font-weight: 700;
+        text-decoration: underline;
+        margin: 0 0 14px;
+    }
+
+    .lr-subtitle {
+        text-align: center;
+        font-size: 13px;
+        font-weight: 700;
+        margin: 14px 0 6px;
+    }
+
+    .lr-section-title {
+        font-size: 12px;
+        font-weight: 700;
+        text-align: center;
+        margin: 18px 0 8px;
+    }
+
+    .lr-watermark-wrap {
+        position: relative;
+    }
+
+    .lr-content-col {
+        position: relative;
+        z-index: 1;
+        padding-right: 90px;
+    }
+
+    .lr-watermark {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        pointer-events: none;
+        color: #f6cdd4;
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 6px;
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+    }
+
+    .lr-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 6px;
+    }
+
+    .lr-table td {
+        border: 1px solid #000;
+        padding: 6px 8px;
+        font-size: 12px;
+        vertical-align: top;
+    }
+
+    .lr-tall-cell {
+        height: 46px;
+    }
+
+    .lr-value-block {
+        font-weight: 400;
+        margin-top: 2px;
+    }
+
+    .lr-checkbox-box {
+        display: inline-block;
+        width: 30px;
+        height: 14px;
+        background: #d9d9d9;
+        border: 1px solid #999;
+        vertical-align: middle;
+        text-align: center;
+        line-height: 14px;
+        font-size: 11px;
+        color: #000;
+    }
+
+    .lr-sig-row td {
+        height: 56px;
+        text-align: center;
+    }
+
+    .lr-sig-line {
+        min-height: 22px;
+        border-bottom: 1px dotted #000;
+        margin-bottom: 4px;
+        font-weight: 400;
+        text-align: center;
+    }
+
+    .lr-box {
+        border: 1px solid #000;
+        padding: 6px 8px;
+        font-size: 12px;
+        margin-bottom: 6px;
+    }
+
+    .lr-plain-line {
+        font-size: 12px;
+        margin: 8px 0;
+    }
+
+    .lr-approved-box {
+        border: 1px solid #000;
+        padding: 18px 8px;
+        font-size: 12px;
+        text-align: center;
+        margin: 14px 0;
+    }
+
+    .lr-classification {
+        color: #1f4e96;
+        font-size: 11px;
+        margin: 16px 0 8px;
+    }
+
+    .lr-page-divider {
+        height: 10px;
+        background: #d9e2f3;
+        margin-bottom: 16px;
+    }
+
+    .lr-accountant-box p {
+        margin: 8px 0;
+    }
+</style>
+
+@code {
+    private static readonly string[] LeaveTypes = { "Annual", "Emergency", "Hajj", "Sick", "W/O Pay", "Other" };
+
+    private string EmployeeName { get; set; } = "";
+    private string Position { get; set; } = "";
+    private string Department { get; set; } = "";
+    private DateOnly DateOfJoining { get; set; } = DateOnly.FromDateTime(DateTime.Now);
+    private string SelectedLeaveType { get; set; } = "Annual";
+    private DateOnly FromDate { get; set; } = DateOnly.FromDateTime(DateTime.Now);
+    private DateOnly ToDate { get; set; } = DateOnly.FromDateTime(DateTime.Now);
+    private string Reason { get; set; } = "";
+    private string AddressWhileOnLeave { get; set; } = "";
+    private bool IsProcessing { get; set; }
+    private string ErrorMessage { get; set; } = "";
+    private string SuccessMessage { get; set; } = "";
+
+    private int TotalDays => ToDate >= FromDate ? ToDate.DayNumber - FromDate.DayNumber + 1 : 0;
+
+    private MarkupString CheckboxCell(string type)
+    {
+        var mark = SelectedLeaveType == type ? "X" : "";
+        return new MarkupString($"{type} <span class=\"lr-checkbox-box\">{mark}</span>");
+    }
+
+    private static string SanitizeFileNamePart(string value)
+    {
+        var trimmed = value.Trim();
+        var invalid = Path.GetInvalidFileNameChars();
+        return string.Concat(trimmed.Select(c => invalid.Contains(c) ? '_' : c));
+    }
+
+    private async Task GenerateLeaveRequestPdf()
+    {
+        if (ToDate < FromDate)
+        {
+            ErrorMessage = "The 'End Date' cannot be before the 'Start Date'.";
+            return;
+        }
+
+        IsProcessing = true;
+        ErrorMessage = "";
+        SuccessMessage = "";
+        StateHasChanged();
+
+        try
+        {
+            var namePart = string.IsNullOrWhiteSpace(EmployeeName) ? "LeaveRequest" : SanitizeFileNamePart(EmployeeName);
+            var fileName = $"{namePart}-LeaveRequest-{FromDate:ddMMMyyyy}.pdf";
+
+            await JS.InvokeVoidAsync("generateElementPdf", "leave-print-template", fileName);
+
+            SuccessMessage = "Leave request PDF generated successfully! Print or download it, then sign manually.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error: {ex.Message}";
+            Console.WriteLine(ex);
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
+    }
+}

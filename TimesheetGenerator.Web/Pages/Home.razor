@@ -5,17 +5,29 @@
 @inject TimesheetService TimesheetService
 @inject IJSRuntime JS
 
-<PageTitle>Timesheet Generator</PageTitle>
+<PageTitle>@(ActiveTab == "leave" ? "Leave Request" : "Timesheet Generator")</PageTitle>
 
 <div class="ts-page">
     <div class="ts-card">
         <div class="ts-header">
             <div class="ts-logo">FS</div>
             <div>
-                <h1 class="ts-title">Timesheet Generator</h1>
-                <p class="ts-subtitle">Create professional timesheets in seconds</p>
+                <h1 class="ts-title">Employee Portal</h1>
+                <p class="ts-subtitle">@(ActiveTab == "leave" ? "Submit a leave request in seconds" : "Create professional timesheets in seconds")</p>
             </div>
         </div>
+
+        <div class="ts-tabs" role="tablist">
+            <button type="button" class="ts-tab @(ActiveTab == "timesheet" ? "active" : "")" @onclick='@(() => ActiveTab = "timesheet")'>Timesheet</button>
+            <button type="button" class="ts-tab @(ActiveTab == "leave" ? "active" : "")" @onclick='@(() => ActiveTab = "leave")'>Leave Request</button>
+        </div>
+
+        @if (ActiveTab == "leave")
+        {
+            <LeaveRequestForm />
+        }
+        else
+        {
 
         @if (!string.IsNullOrEmpty(ErrorMessage))
         {
@@ -138,6 +150,8 @@
             </button>
         </div>
 
+        }
+
         <p class="ts-footer">&copy; @DateTime.Now.Year &nbsp;FISAL Software&nbsp; &bull; &nbsp;Developed by Mohammed Fisal</p>
     </div>
 </div>
@@ -248,6 +262,47 @@
         margin: 2px 0 0;
         font-size: 0.85rem;
         color: #777;
+    }
+
+    .ts-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 24px;
+        background: #f4f2fa;
+        padding: 6px;
+        border-radius: 999px;
+    }
+
+    .ts-tab {
+        flex: 1;
+        border: none;
+        background: transparent;
+        padding: 10px 16px;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: #777;
+        cursor: pointer;
+        transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .ts-tab:hover {
+        color: #6d28d9;
+    }
+
+    .ts-tab.active {
+        background: linear-gradient(135deg, #6d28d9, #ec4899);
+        color: #fff;
+        box-shadow: 0 6px 16px rgba(109, 40, 217, 0.35);
+    }
+
+    .ts-field-label {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #555;
     }
 
     .ts-form-grid {
@@ -487,6 +542,7 @@
 </style>
 
 @code {
+    private string ActiveTab { get; set; } = "timesheet";
     private int Year { get; set; } = DateTime.Now.Year;
     private int Month { get; set; } = DateTime.Now.Month;
     private string EmployeeName { get; set; } = "";

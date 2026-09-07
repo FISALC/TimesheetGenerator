@@ -107,10 +107,12 @@
                     <tbody>
                         @foreach (var entry in DayEntries)
                         {
-                            <tr style="background-color:@GetRowColor(entry.Kind);">
-                                <td class="text-center">@entry.Date.ToString("ddd")</td>
-                                <td class="text-center">@entry.Date.ToString("d MMM")</td>
-                                <td>
+                            var isWeekend = entry.Kind == DateKind.Weekend;
+                            var rowStyle = $"background-color:{GetRowColor(entry.Kind)};" + (isWeekend ? "border-left:4px solid #ED7D31;" : "");
+                            <tr class="@(isWeekend ? "weekend-row" : "")">
+                                <td class="text-center" style="@rowStyle">@entry.Date.ToString("ddd")</td>
+                                <td class="text-center" style="background-color:@GetRowColor(entry.Kind);">@entry.Date.ToString("d MMM")</td>
+                                <td style="background-color:@GetRowColor(entry.Kind);">
                                     <select class="form-select form-select-sm"
                                             value="@GetKindValue(entry)"
                                             @onchange="e => OnKindChanged(entry, e)">
@@ -538,6 +540,11 @@
         border-radius: 3px;
         margin-right: 4px;
         vertical-align: middle;
+    }
+
+    .weekend-row td {
+        font-weight: 700;
+        color: #b45309;
     }
 </style>
 

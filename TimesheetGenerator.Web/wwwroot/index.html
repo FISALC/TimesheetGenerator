@@ -30,8 +30,7 @@
         <span class="dismiss">🗙</span>
     </div>
     <script src="_framework/blazor.webassembly.js"></script>
-    <script src="lib/pdf/html2canvas.min.js"></script>
-    <script src="lib/pdf/jspdf.umd.min.js"></script>
+    <script src="lib/pdf/pdf-lib.min.js"></script>
     <script>navigator.serviceWorker.register('service-worker.js');</script>
     <script>
         window.downloadFileFromStream = async (fileName, contentStreamReference) => {
@@ -46,34 +45,92 @@
             URL.revokeObjectURL(url);
         }
 
-        window.generateElementPdf = async (elementId, fileName) => {
-            const element = document.getElementById(elementId);
-            if (!element) return;
+        window.downloadBytes = (fileName, bytes) => {
+            const blob = new Blob([new Uint8Array(bytes)], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const anchorElement = document.createElement('a');
+            anchorElement.href = url;
+            anchorElement.download = fileName ?? '';
+            anchorElement.click();
+            anchorElement.remove();
+            URL.revokeObjectURL(url);
+        }
 
-            const canvas = await html2canvas(element, { scale: 2, useCORS: true });
-            const imgData = canvas.toDataURL('image/png');
+        // Coordinates below are measured directly against templates/leave-request-template.pdf
+        // (612x792pt / US Letter), in PDF space (origin bottom-left, y up).
+        const LEAVE_PAGE_HEIGHT = 792;
+        const LEAVE_CHECKBOX_CENTERS = {
+            'Annual':     [157.32, 200.3],
+            'Emergency':  [324.24, 200.5],
+            'Hajj':       [465.96, 200.5],
+            'Sick':       [157.32, 223.1],
+            'W/O Pay':    [324.24, 223.1],
+            'Other':      [465.96, 223.1],
+        };
 
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const pageWidth = pdf.internal.pageSize.getWidth();
-            const pageHeight = pdf.internal.pageSize.getHeight();
-            const imgWidth = pageWidth;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        function wrapLines(pdfLib, font, text, size, maxWidth, maxLines) {
+            if (!text) return [];
+            const words = text.split(/\s+/).filter(Boolean);
+            const lines = [];
+            let current = '';
+            for (const word of words) {
+                const trial = current ? `${current} ${word}` : word;
+                if (font.widthOfTextAtSize(trial, size) > maxWidth && current) {
+                    lines.push(current);
+                    current = word;
+                } else {
+                    current = trial;
+                }
+            }
+            if (current) lines.push(current);
+            return lines.slice(0, maxLines);
+        }
 
-            let heightLeft = imgHeight;
-            let position = 0;
+        window.generateLeaveRequestPdf = async (data, fileName) => {
+            const { PDFDocument, StandardFonts, rgb } = PDFLib;
 
-            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
+            const templateBytes = await fetch('templates/leave-request-template.pdf').then(r => r.arrayBuffer());
+            const pdfDoc = await PDFDocument.load(templateBytes);
+            const page = pdfDoc.getPages()[0];
+            const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+            const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+            const size = 10;
+            const color = rgb(0, 0, 0.55);
 
-            while (heightLeft > 0) {
-                position = heightLeft - imgHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
+            const draw = (text, x, yTop, opts) => {
+                if (!text) return;
+                page.drawText(String(text), {
+                    x, y: LEAVE_PAGE_HEIGHT - yTop,
+                    size: (opts && opts.size) || size,
+                    font: (opts && opts.font) || font,
+                    color,
+                });
+            };
+
+            const drawWrapped = (text, x, yTop, maxWidth, maxLines, lineHeight) => {
+                const lines = wrapLines(PDFLib, font, text, size, maxWidth, maxLines);
+                lines.forEach((line, i) => draw(line, x, yTop + i * lineHeight));
+            };
+
+            draw(data.dateOfJoining, 170, 79.2);
+            draw(data.today, 345, 79.2);
+            draw(data.employeeName, 165, 126.0);
+            draw(data.position, 120, 149.2);
+            draw(data.department, 360, 149.2);
+
+            const center = LEAVE_CHECKBOX_CENTERS[data.leaveType];
+            if (center) {
+                draw('X', center[0] - 3, center[1], { font: fontBold });
             }
 
-            pdf.save(fileName);
+            drawWrapped(data.reason, 80, 258, 455, 2, 12);
+            draw(data.startDate, 125, 290.9);
+            draw(data.endDate, 287, 290.9);
+            draw(data.totalDays, 435, 290.9);
+            drawWrapped(data.address, 80, 328, 455, 2, 12);
+
+            const pdfBytes = await pdfDoc.save();
+            window.downloadBytes(fileName, pdfBytes);
         }
     </script>
 </body>

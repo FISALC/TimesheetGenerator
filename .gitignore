@@ -1,6 +1,12 @@
+# Build folders
 bin/
 obj/
+
+# Visual Studio
 .vs/
 *.user
 *.suo
 *.pdb
+
+# Claude
+.claude/

@@ -12,20 +12,20 @@
 
 <div class="ts-form-grid">
     <section class="ts-section ts-panel">
-        <h2 class="ts-section-title">Employee Details</h2>
+        <h2 class="ts-section-title">Employee Details <span class="ts-required">*</span></h2>
         <div class="ts-grid-2">
-            <input class="form-control ts-input" placeholder="e.g., Mohammed Fisal" @bind="EmployeeName" />
-            <input class="form-control ts-input" placeholder="Position, e.g., Software Developer" @bind="Position" />
-            <input class="form-control ts-input" placeholder="Department" @bind="Department" />
+            <input class="form-control ts-input @(IsInvalid(EmployeeName) ? "is-invalid" : "")" placeholder="e.g., Mohammed Fisal" required @bind="EmployeeName" />
+            <input class="form-control ts-input @(IsInvalid(Position) ? "is-invalid" : "")" placeholder="Position, e.g., Software Developer" required @bind="Position" />
+            <input class="form-control ts-input @(IsInvalid(Department) ? "is-invalid" : "")" placeholder="Department" required @bind="Department" />
             <label class="ts-field-label">
-                Date of Joining
-                <input type="date" class="form-control ts-input" @bind="DateOfJoining" />
+                Date of Joining <span class="ts-required">*</span>
+                <input type="date" class="form-control ts-input" required @bind="DateOfJoining" />
             </label>
         </div>
     </section>
 
     <section class="ts-section ts-panel">
-        <h2 class="ts-section-title">Leave Type</h2>
+        <h2 class="ts-section-title">Leave Type <span class="ts-required">*</span></h2>
         <select class="form-select ts-input" @bind="SelectedLeaveType">
             @foreach (var type in LeaveTypes)
             {
@@ -35,30 +35,31 @@
     </section>
 
     <section class="ts-section ts-panel ts-span-2">
-        <h2 class="ts-section-title">Leave Period</h2>
+        <h2 class="ts-section-title">Leave Period <span class="ts-required">*</span></h2>
         <div class="ts-grid-2">
             <label class="ts-field-label">
                 Start Date
-                <input type="date" class="form-control ts-input" @bind="FromDate" />
+                <input type="date" class="form-control ts-input" required @bind="FromDate" />
             </label>
             <label class="ts-field-label">
                 End Date
-                <input type="date" class="form-control ts-input" @bind="ToDate" />
+                <input type="date" class="form-control ts-input" required @bind="ToDate" />
             </label>
         </div>
         <p class="ts-hint">Total days requested: <strong>@TotalDays</strong></p>
     </section>
 
     <section class="ts-section ts-panel ts-span-2">
-        <h2 class="ts-section-title">Reason of Leave</h2>
-        <textarea class="form-control ts-input" rows="2" placeholder="Briefly describe the reason for leave" @bind="Reason"></textarea>
+        <h2 class="ts-section-title">Reason of Leave <span class="ts-required">*</span></h2>
+        <textarea class="form-control ts-input @(IsInvalid(Reason) ? "is-invalid" : "")" rows="2" placeholder="Briefly describe the reason for leave" required @bind="Reason"></textarea>
     </section>
 
     <section class="ts-section ts-panel ts-span-2">
-        <h2 class="ts-section-title">Address While on Leave</h2>
-        <input class="form-control ts-input" placeholder="Address / contact details while on leave" @bind="AddressWhileOnLeave" />
+        <h2 class="ts-section-title">Address While on Leave <span class="ts-required">*</span></h2>
+        <input class="form-control ts-input @(IsInvalid(AddressWhileOnLeave) ? "is-invalid" : "")" placeholder="Address / contact details while on leave" required @bind="AddressWhileOnLeave" />
     </section>
 </div>
+<p class="ts-hint" style="text-align:center;"><span class="ts-required">*</span> All fields are required to generate the PDF.</p>
 
 <div class="ts-actions">
     <button class="ts-generate-btn" @onclick="GenerateLeaveRequestPdf" disabled="@IsProcessing">
@@ -95,10 +96,13 @@
     private string Reason { get; set; } = "";
     private string AddressWhileOnLeave { get; set; } = "";
     private bool IsProcessing { get; set; }
+    private bool Submitted { get; set; }
     private string ErrorMessage { get; set; } = "";
     private string SuccessMessage { get; set; } = "";
 
     private int TotalDays => ToDate >= FromDate ? ToDate.DayNumber - FromDate.DayNumber + 1 : 0;
+
+    private bool IsInvalid(string value) => Submitted && string.IsNullOrWhiteSpace(value);
 
     private static string SanitizeFileNamePart(string value)
     {
@@ -109,6 +113,18 @@
 
     private async Task GenerateLeaveRequestPdf()
     {
+        Submitted = true;
+        ErrorMessage = "";
+        SuccessMessage = "";
+
+        if (string.IsNullOrWhiteSpace(EmployeeName) || string.IsNullOrWhiteSpace(Position) ||
+            string.IsNullOrWhiteSpace(Department) || string.IsNullOrWhiteSpace(Reason) ||
+            string.IsNullOrWhiteSpace(AddressWhileOnLeave))
+        {
+            ErrorMessage = "Please fill in all required fields before generating the PDF.";
+            return;
+        }
+
         if (ToDate < FromDate)
         {
             ErrorMessage = "The 'End Date' cannot be before the 'Start Date'.";
@@ -116,8 +132,6 @@
         }
 
         IsProcessing = true;
-        ErrorMessage = "";
-        SuccessMessage = "";
         StateHasChanged();
 
         try

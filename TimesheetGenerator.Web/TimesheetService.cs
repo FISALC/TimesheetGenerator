@@ -24,7 +24,6 @@ namespace TimesheetGenerator.Web
         private static readonly XLColor TableHeaderBgFix = XLColor.FromHtml("#404040"); // Dark Grey
         private static readonly XLColor WeekendFill = XLColor.FromHtml("#FCE4D6"); // Peach - weekend
         private static readonly XLColor HolidayFill = XLColor.FromHtml("#FFF2CC"); // Light Yellow - public holiday
-        private static readonly XLColor LeaveFill = XLColor.FromHtml("#DDEBF7");   // Light Blue - leave day
         private static readonly XLColor MissionFill = XLColor.FromHtml("#E2EFDA"); // Light Green - mission/business trip
 
         public async Task<byte[]> GenerateTimesheetBytesAsync(int year, int month, string employeeName, string employeeRole, string approverName, string approverRole, Dictionary<DateOnly, (DateKind Kind, LeaveType? LeaveKind)>? customDates = null)
@@ -172,7 +171,6 @@ namespace TimesheetGenerator.Web
                 {
                     DateKind.Weekend  => WeekendFill,
                     DateKind.Holiday  => HolidayFill,
-                    DateKind.Leave    => LeaveFill,
                     DateKind.Mission  => MissionFill,
                     _                 => XLColor.NoColor
                 };
